@@ -39,18 +39,38 @@ cd backend
 
 ## 3. Install Dependencies
 
-Install all required dependencies using:
+Install the required backend packages:
+
+```bash
+npm install express mongoose dotenv
+```
+
+Install Nodemon as a development dependency:
+
+```bash
+npm install --save-dev nodemon
+```
+
+For authentication, install:
+
+```bash
+npm install bcryptjs jsonwebtoken
+```
+
+Or, if `package.json` is already present, you can install everything at once using:
 
 ```bash
 npm install
 ```
 
-This will install the packages listed in `package.json`, including the required backend packages such as:
+The required backend packages are:
 
 - Express
 - Mongoose
 - Dotenv
 - Nodemon
+- bcryptjs
+- jsonwebtoken
 
 You do not need to install these packages separately if `package.json` is already present.
 
@@ -58,7 +78,7 @@ You do not need to install these packages separately if `package.json` is alread
 
 ## 4. Create the `.env` File
 
-The `.env` file contains environment-specific information such as the MongoDB connection string.
+The `.env` file contains environment-specific information such as the MongoDB connection string and JWT secret.
 
 The `.env` file is **not included in GitHub** for security reasons.
 
@@ -73,6 +93,7 @@ Add:
 ```env
 PORT=5000
 MONGO_URI=YOUR_MONGODB_CONNECTION_STRING
+JWT_SECRET=YOUR_JWT_SECRET
 ```
 
 Replace:
@@ -83,18 +104,27 @@ YOUR_MONGODB_CONNECTION_STRING
 
 with your MongoDB connection string.
 
+Replace:
+
+```text
+YOUR_JWT_SECRET
+```
+
+with your JWT secret.
+
 For example:
 
 ```env
 PORT=5000
 MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/PGConnect
+JWT_SECRET=your_secret_key
 ```
 
 ### Important
 
 Do **not** push the `.env` file to GitHub.
 
-The `.env` file contains private information such as database credentials.
+The `.env` file contains private information such as database credentials and JWT secret.
 
 Every developer working on the project should create their own `.env` file locally.
 
@@ -137,13 +167,22 @@ backend/
 │   │   └── db.js
 │   │
 │   ├── controllers/
-│   │   └── userController.js
+│   │   ├── userController.js
+│   │   └── authController.js
+│   │
+│   ├── middleware/
+│   │   ├── authMiddleware.js
+│   │   └── roleMiddleware.js
 │   │
 │   ├── models/
 │   │   └── User.js
 │   │
 │   ├── routes/
-│   │   └── userRoutes.js
+│   │   ├── userRoutes.js
+│   │   └── authRoutes.js
+│   │
+│   ├── scripts/
+│   │   └── createAdmin.js
 │   │
 │   └── server.js
 │
@@ -160,3 +199,12 @@ After pulling the latest code, follow these steps:
 git pull origin main
 cd backend
 npm install
+```
+
+Create your own `.env` file inside the `backend` folder and add:
+
+```env
+PORT=5000
+MONGO_URI=YOUR_MONGODB_CONNECTION_STRING
+JWT_SECRET=YOUR_JWT_SECRET
+```
