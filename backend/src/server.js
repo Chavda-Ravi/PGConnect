@@ -5,6 +5,7 @@ const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/authRoutes");
 const pgListingRoutes = require("./routes/PGListingRoutes");
+const studentRoutes = require("./routes/studentRoutes");
 
 dotenv.config();
 
@@ -24,7 +25,10 @@ app.use("/api/users", userRoutes);
 
 // Authentication routes
 app.use("/api/auth", authRoutes);
+
 app.use("/api/pgs", pgListingRoutes);
+
+app.use("/api/students", studentRoutes);
 
 const PORT = process.env.PORT || 5000;
 

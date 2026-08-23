@@ -4,42 +4,43 @@ const pgListingSchema = new mongoose.Schema(
   {
     ownerId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "PGOwner",
-      required: true
+      ref: "User",
+      required: true,
     },
 
     pgName: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
 
     address: {
       type: String,
-      required: true
+      required: true,
     },
 
     city: {
       type: String,
-      required: true
+      required: true,
     },
 
     description: {
-      type: String
+      type: String,
     },
 
     contactNo: {
       type: String,
-      required: true
+      required: true,
     },
 
     amenities: {
-      type: [String]
-    }
+      type: [String],
+      default: [],
+    },
   },
   {
-    timestamps: true
-  }
+    timestamps: true,
+  },
 );
 
 module.exports = mongoose.model("PGListing", pgListingSchema);
