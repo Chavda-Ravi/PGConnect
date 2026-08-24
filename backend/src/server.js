@@ -7,6 +7,8 @@ const authRoutes = require("./routes/authRoutes");
 const pgListingRoutes = require("./routes/PGListingRoutes");
 const studentRoutes = require("./routes/studentRoutes");
 const pgDiscoveryRoutes = require("./routes/pgDiscoveryRoutes");
+const inquiryRoutes = require("./routes/inquiryRoutes");
+
 
 dotenv.config();
 
@@ -29,6 +31,8 @@ app.use("/api/pgs", pgListingRoutes);
 app.use("/api/students", studentRoutes);
 
 app.use("/api/discovery/pgs", pgDiscoveryRoutes);
+
+app.use("/api/inquiries", inquiryRoutes);
 
 const PORT = process.env.PORT || 5000;
 
