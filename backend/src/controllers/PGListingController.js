@@ -1,6 +1,8 @@
 const PGListing = require("../models/PGListing");
 const User = require("../models/User");
 
+const isInvalidObjectId = (error) => error.name === "CastError";
+
 const addPGListing = async (req, res) => {
   try {
     if (req.user.role !== "pg_owner") {
@@ -87,6 +89,12 @@ const getPGListingById = async (req, res) => {
       pgListing,
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid PG listing ID",
+      });
+    }
+
     console.error("Get PG Error:", error.message);
 
     res.status(500).json({
@@ -160,6 +168,12 @@ const updatePGListing = async (req, res) => {
       pgListing,
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid PG listing ID",
+      });
+    }
+
     console.error("Update PG Error:", error.message);
 
     res.status(500).json({
@@ -205,6 +219,12 @@ const deletePGListing = async (req, res) => {
       message: "PG listing deleted successfully",
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid PG listing ID",
+      });
+    }
+
     console.error("Delete PG Error:", error.message);
 
     res.status(500).json({

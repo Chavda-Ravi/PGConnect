@@ -1,6 +1,8 @@
 const Inquiry = require("../models/Inquiry");
 const PGListing = require("../models/PGListing");
 
+const isInvalidObjectId = (error) => error.name === "CastError";
+
 const createInquiry = async (req, res) => {
     try {
         if (req.user.role !== "student") {
@@ -37,6 +39,12 @@ const createInquiry = async (req, res) => {
         });
 
     } catch (error) {
+        if (isInvalidObjectId(error)) {
+            return res.status(400).json({
+                message: "Invalid PG listing ID"
+            });
+        }
+
         console.error("Create Inquiry Error:", error.message);
 
         res.status(500).json({
@@ -152,6 +160,12 @@ const respondToInquiry = async (req, res) => {
         });
 
     } catch (error) {
+        if (isInvalidObjectId(error)) {
+            return res.status(400).json({
+                message: "Invalid inquiry ID"
+            });
+        }
+
         console.error("Respond Inquiry Error:", error.message);
 
         res.status(500).json({

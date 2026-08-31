@@ -1,5 +1,7 @@
 const PGListing = require("../models/PGListing");
 
+const isInvalidObjectId = (error) => error.name === "CastError";
+
 const getAllPGs = async (req, res) => {
   try {
     const pgs = await PGListing.find()
@@ -11,6 +13,12 @@ const getAllPGs = async (req, res) => {
       pgs,
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid PG listing ID",
+      });
+    }
+
     res.status(500).json({
       message: "Server error",
       error: error.message,
@@ -35,6 +43,12 @@ const getPGById = async (req, res) => {
       pg,
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid PG listing ID",
+      });
+    }
+
     res.status(500).json({
       message: "Server error",
       error: error.message,

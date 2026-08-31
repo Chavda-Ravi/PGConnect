@@ -1,6 +1,8 @@
 const Booking = require("../models/Booking");
 const PGListing = require("../models/PGListing");
 
+const isInvalidObjectId = (error) => error.name === "CastError";
+
 const createBooking = async (req, res) => {
   try {
     if (req.user.role !== "student") {
@@ -72,6 +74,12 @@ const createBooking = async (req, res) => {
       booking,
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid PG listing ID",
+      });
+    }
+
     console.error("Create Booking Error:", error.message);
 
     res.status(500).json({
@@ -150,7 +158,7 @@ const getBookingById = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id)
       .populate("studentId", "name email phone_no")
-      .populate("pgId", "pgName address city contactNo");
+      .populate("pgId", "pgName address city contactNo ownerId");
 
     if (!booking) {
       return res.status(404).json({
@@ -175,6 +183,12 @@ const getBookingById = async (req, res) => {
       booking,
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid booking ID",
+      });
+    }
+
     console.error("Get Booking Error:", error.message);
 
     res.status(500).json({
@@ -221,6 +235,12 @@ const acceptBooking = async (req, res) => {
       booking,
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid booking ID",
+      });
+    }
+
     console.error("Accept Booking Error:", error.message);
 
     res.status(500).json({
@@ -267,6 +287,12 @@ const rejectBooking = async (req, res) => {
       booking,
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid booking ID",
+      });
+    }
+
     console.error("Reject Booking Error:", error.message);
 
     res.status(500).json({
@@ -313,6 +339,12 @@ const cancelBooking = async (req, res) => {
       booking,
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid booking ID",
+      });
+    }
+
     console.error("Cancel Booking Error:", error.message);
 
     res.status(500).json({

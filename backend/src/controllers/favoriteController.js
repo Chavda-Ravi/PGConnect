@@ -1,6 +1,8 @@
 const Favorite = require("../models/Favorite");
 const PGListing = require("../models/PGListing");
 
+const isInvalidObjectId = (error) => error.name === "CastError";
+
 const addFavorite = async (req, res) => {
   try {
     if (req.user.role !== "student") {
@@ -45,6 +47,12 @@ const addFavorite = async (req, res) => {
       favorite: populatedFavorite,
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid PG listing ID",
+      });
+    }
+
     console.error("Add Favorite Error:", error.message);
 
     res.status(500).json({
@@ -81,6 +89,12 @@ const removeFavorite = async (req, res) => {
       message: "PG removed from favorites successfully",
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid PG listing ID",
+      });
+    }
+
     console.error("Remove Favorite Error:", error.message);
 
     res.status(500).json({
@@ -137,6 +151,12 @@ const checkFavorite = async (req, res) => {
       isFavorite: !!favorite,
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid PG listing ID",
+      });
+    }
+
     console.error("Check Favorite Error:", error.message);
 
     res.status(500).json({

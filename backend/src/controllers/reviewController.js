@@ -2,6 +2,8 @@ const Review = require("../models/Review");
 const Booking = require("../models/Booking");
 const PGListing = require("../models/PGListing");
 
+const isInvalidObjectId = (error) => error.name === "CastError";
+
 const createReview = async (req, res) => {
   try {
     if (req.user.role !== "student") {
@@ -86,6 +88,12 @@ const createReview = async (req, res) => {
       review: populatedReview,
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid review request ID",
+      });
+    }
+
     console.error("Create Review Error:", error.message);
 
     res.status(500).json({
@@ -156,6 +164,12 @@ const getPGReviews = async (req, res) => {
       reviews,
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid PG listing ID",
+      });
+    }
+
     console.error("Get PG Reviews Error:", error.message);
 
     res.status(500).json({
@@ -214,6 +228,12 @@ const updateReview = async (req, res) => {
       review: updatedReview,
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid review ID",
+      });
+    }
+
     console.error("Update Review Error:", error.message);
 
     res.status(500).json({
@@ -251,6 +271,12 @@ const deleteReview = async (req, res) => {
       message: "Review deleted successfully",
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid review ID",
+      });
+    }
+
     console.error("Delete Review Error:", error.message);
 
     res.status(500).json({

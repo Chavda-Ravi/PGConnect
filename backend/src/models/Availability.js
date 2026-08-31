@@ -26,12 +26,10 @@ const availabilitySchema = new mongoose.Schema(
   },
 );
 
-availabilitySchema.pre("validate", function (next) {
+availabilitySchema.pre("validate", function () {
   if (this.availableBeds > this.totalBeds) {
-    return next(new Error("Available beds cannot be greater than total beds"));
+    throw new Error("Available beds cannot be greater than total beds");
   }
-
-  next();
 });
 
 module.exports = mongoose.model("Availability", availabilitySchema);

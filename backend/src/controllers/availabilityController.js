@@ -1,6 +1,8 @@
 const Availability = require("../models/Availability");
 const PGListing = require("../models/PGListing");
 
+const isInvalidObjectId = (error) => error.name === "CastError";
+
 const createAvailability = async (req, res) => {
   try {
     if (req.user.role !== "pg_owner") {
@@ -68,6 +70,12 @@ const createAvailability = async (req, res) => {
       availability,
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid PG listing ID",
+      });
+    }
+
     console.error("Create Availability Error:", error.message);
 
     res.status(500).json({
@@ -104,6 +112,12 @@ const getPGAvailability = async (req, res) => {
       availability,
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid PG listing ID",
+      });
+    }
+
     console.error("Get Availability Error:", error.message);
 
     res.status(500).json({
@@ -173,6 +187,12 @@ const updateAvailability = async (req, res) => {
       availability,
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid availability ID",
+      });
+    }
+
     console.error("Update Availability Error:", error.message);
 
     res.status(500).json({
@@ -218,6 +238,12 @@ const deleteAvailability = async (req, res) => {
       message: "PG availability deleted successfully",
     });
   } catch (error) {
+    if (isInvalidObjectId(error)) {
+      return res.status(400).json({
+        message: "Invalid availability ID",
+      });
+    }
+
     console.error("Delete Availability Error:", error.message);
 
     res.status(500).json({
