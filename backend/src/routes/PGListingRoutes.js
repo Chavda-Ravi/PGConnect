@@ -13,42 +13,24 @@ const {
 const protect = require("../middleware/authMiddleware");
 
 
-// Add PG
-router.post(
-    "/",
-    protect,
-    addPGListing
-);
+// Add a PG listing
+router.post("/", protect, addPGListing);
 
 
-// Get all PGs
-router.get(
-    "/",
-    getPGListings
-);
+// Get all PG listings
+router.get("/", getPGListings);
 
 
-// Get PG by ID
-router.get(
-    "/:id",
-    getPGListingById
-);
+// Get PG listing by ID
+router.get("/:id", getPGListingById);
 
 
-// Update PG
-router.put(
-    "/:id",
-    protect,
-    updatePGListing
-);
+// Update PG listing
+router.put("/:id", protect, updatePGListing);
 
 
-// Delete PG
-router.delete(
-    "/:id",
-    protect,
-    deletePGListing
-);
+// Delete PG listing
+router.delete("/:id", protect, deletePGListing);
 
 
 module.exports = router;

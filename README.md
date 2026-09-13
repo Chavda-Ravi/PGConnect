@@ -203,8 +203,10 @@ npm install
 
 Create your own `.env` file inside the `backend` folder and add:
 
+
+# example
 ```env
-PORT=5000
-MONGO_URI=YOUR_MONGODB_CONNECTION_STRING
-JWT_SECRET=YOUR_JWT_SECRET
+MONGO_URI = mongodb://127.0.0.1:27017/pgconnect
+PORT = 5000
+JWT_SECRET = mind your own business.
 ```
