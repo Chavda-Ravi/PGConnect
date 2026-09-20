@@ -38,11 +38,7 @@ const pgListingSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-
-        amenities: {
-            type: [String],
-            default: [],
-        },
+        
     },
     {
         timestamps: true,

@@ -1,5 +1,5 @@
 const PGListing = require("../models/PGListing");
-const User = require("../models/User");
+const PGOwner = require("../models/PGOwner");
 
 const isInvalidObjectId = (error) => error.name === "CastError";
 
@@ -11,9 +11,9 @@ const addPGListing = async (req, res) => {
             });
         }
 
-        const owner = await User.findById(req.user.userId);
+        const pgOwner = await PGOwner.findOne({userId: req.user.userId});
 
-        if (!owner) {
+        if (!pgOwner) {
             return res.status(404).json({
                 message: "PG Owner account not found",
             });
@@ -36,7 +36,7 @@ const addPGListing = async (req, res) => {
         }
 
         const pgListing = await PGListing.create({
-            ownerId: owner._id,
+            ownerId: pgOwner._id,
             pgName,
             address,
             city,
@@ -121,9 +121,9 @@ const updatePGListing = async (req, res) => {
             });
         }
 
-        const owner = await User.findById(req.user.userId);
+        const pgOwner = await PGOwner.findOne({userId: req.user.userId});
 
-        if (!owner) {
+        if (!pgOwner) {
             return res.status(404).json({
                 message: "PG Owner account not found",
             });
@@ -137,7 +137,7 @@ const updatePGListing = async (req, res) => {
             });
         }
 
-        if (pgListing.ownerId.toString() !== owner._id.toString()) {
+        if (pgListing.ownerId.toString() !== pgOwner._id.toString()) {
             return res.status(403).json({
                 message: "You can only update your own PG listing",
             });
@@ -212,9 +212,9 @@ const deletePGListing = async (req, res) => {
             });
         }
 
-        const owner = await User.findById(req.user.userId);
+        const pgOwner = await PGOwner.findOne({userId: req.user.userId});
 
-        if (!owner) {
+        if (!pgOwner) {
             return res.status(404).json({
                 message: "PG Owner account not found",
             });
@@ -228,7 +228,7 @@ const deletePGListing = async (req, res) => {
             });
         }
 
-        if (pgListing.ownerId.toString() !== owner._id.toString()) {
+        if (pgListing.ownerId.toString() !== pgOwner._id.toString()) {
             return res.status(403).json({
                 message: "You can only delete your own PG listing",
             });

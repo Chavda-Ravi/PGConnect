@@ -6,6 +6,7 @@ const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/authRoutes");
 const pgListingRoutes = require("./routes/PGListingRoutes");
 const studentRoutes = require("./routes/studentRoutes");
+const pgOwnerRoutes = require("./routes/pgOwnerRoutes");
 const pgDiscoveryRoutes = require("./routes/pgDiscoveryRoutes");
 const inquiryRoutes = require("./routes/inquiryRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
@@ -33,6 +34,8 @@ app.use("/api/pgs", pgListingRoutes);
 
 app.use("/api/students", studentRoutes);
 
+app.use("/api/pgowners", pgOwnerRoutes);
+
 app.use("/api/discovery/pgs", pgDiscoveryRoutes);
 
 app.use("/api/inquiries", inquiryRoutes);
@@ -49,4 +52,4 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-});
+}); 

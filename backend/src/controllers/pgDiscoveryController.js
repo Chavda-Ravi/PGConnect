@@ -6,7 +6,13 @@ const isInvalidObjectId = (error) => error.name === "CastError";
 const getAllPGs = async (req, res) => {
     try {
         const pgs = await PGListing.find()
-            .populate("ownerId", "name email phone_no")
+            .populate({
+                path: "ownerId",
+                populate: {
+                    path: "userId",
+                    select: "name email phone_no"
+                }
+            })
             .sort({ createdAt: -1 });
 
         res.status(200).json({
@@ -27,7 +33,13 @@ const getAllPGs = async (req, res) => {
 const getPGById = async (req, res) => {
     try {
         const pg = await PGListing.findById(req.params.id)
-            .populate("ownerId", "name email phone_no");
+            .populate({
+                path: "ownerId",
+                populate: {
+                    path: "userId",
+                    select: "name email phone_no"
+                }
+            })
 
         if (!pg) {
             return res.status(404).json({
@@ -78,7 +90,13 @@ const searchPGs = async (req, res) => {
         }
 
         const pgs = await PGListing.find(filter)
-            .populate("ownerId", "name email phone_no")
+            .populate({
+                path: "ownerId",
+                populate: {
+                    path: "userId",
+                    select: "name email phone_no"
+                }
+            })
             .sort({ createdAt: -1 });
 
         res.status(200).json({
