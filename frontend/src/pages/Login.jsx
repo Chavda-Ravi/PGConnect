@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { loginUser } from "../services/authService";
+import { useAuth } from "../context/AuthContext";
 import "../index.css";
 
 function Login() {
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const [formData, setFormData] = useState({
         email: "",
@@ -28,44 +29,42 @@ function Login() {
         setLoading(true);
 
         try {
-            const data = await loginUser({
+            const loggedInUser = await login({
                 email: formData.email,
                 password: formData.password,
+                expectedRole: formData.role,
             });
 
-            if (!data.token || !data.user) {
-                setError("Invalid response from server.");
-                return;
-            }
-
-            if (data.user.role !== formData.role) {
-                setError(
-                    `This account is registered as ${data.user.role.replace("_", " ")}.`,
-                );
-                return;
-            }
-
-            localStorage.setItem("token", data.token);
-            localStorage.setItem("user", JSON.stringify(data.user));
-
-            if (data.user.role === "student") {
+            if (loggedInUser.role === "student") {
                 navigate("/student/dashboard");
                 return;
             }
 
-            if (data.user.role === "pg_owner") {
+            if (loggedInUser.role === "pg_owner") {
                 navigate("/owner/dashboard");
                 return;
             }
 
             setError("Unsupported user role.");
         } catch (err) {
-            if (!err.response) {
-                setError("Backend is not responding. Please restart the server and try again.");
-            } else if (err.response.status >= 500) {
-                setError(err.response.data?.message || "Server error. Please try again.");
+            if (err.response) {
+                if (err.response.status >= 500) {
+                    setError(
+                        err.response.data?.message ||
+                            "Server error. Please try again.",
+                    );
+                } else {
+                    setError(
+                        err.response.data?.message ||
+                            "Invalid email or password.",
+                    );
+                }
+            } else if (err.message) {
+                setError(err.message);
             } else {
-                setError(err.response.data?.message || "Invalid email or password.");
+                setError(
+                    "Backend is not responding. Please restart the server and try again.",
+                );
             }
         } finally {
             setLoading(false);

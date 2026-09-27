@@ -11,7 +11,7 @@ const addPGListing = async (req, res) => {
             });
         }
 
-        const pgOwner = await PGOwner.findOne({userId: req.user.userId});
+        const pgOwner = await PGOwner.findOne({ userId: req.user.userId });
 
         if (!pgOwner) {
             return res.status(404).json({
@@ -19,19 +19,12 @@ const addPGListing = async (req, res) => {
             });
         }
 
-        const {
-            pgName,
-            address,
-            city,
-            state,
-            description,
-            contactNo,
-            amenities
-        } = req.body;
+        const { pgName, address, city, state, description, contactNo } = req.body;
 
         if (!pgName || !address || !city || !state || !contactNo) {
             return res.status(400).json({
-                message: "PG name, address, city, state and contact number are required",
+                message:
+                    "PG name, address, city, state and contact number are required",
             });
         }
 
@@ -43,14 +36,12 @@ const addPGListing = async (req, res) => {
             state,
             description,
             contactNo,
-            amenities: amenities || [],
         });
 
         res.status(201).json({
             message: "PG listing added successfully",
             pgListing,
         });
-
     } catch (error) {
         console.error("Add PG Error:", error.message);
 
@@ -61,17 +52,39 @@ const addPGListing = async (req, res) => {
     }
 };
 
+// Owner-scoped: returns the logged-in owner's PGs.
+// If no token / not an owner, falls through to all PGs (used by public discovery if needed).
 const getPGListings = async (req, res) => {
     try {
-        const pgListings = await PGListing.find()
-            .populate("ownerId", "name email phone_no")
+        // No JWT → return all (used by nothing right now, but safe)
+        if (!req.user || req.user.role !== "pg_owner") {
+            const pgListings = await PGListing.find()
+                .populate("ownerId", "ownerName contactNo city state")
+                .sort({ createdAt: -1 });
+
+            return res.status(200).json({
+                count: pgListings.length,
+                pgListings,
+            });
+        }
+
+        // Owner → return only their own PGs
+        const pgOwner = await PGOwner.findOne({ userId: req.user.userId });
+
+        if (!pgOwner) {
+            return res.status(404).json({
+                message: "PG Owner account not found",
+            });
+        }
+
+        const pgListings = await PGListing.find({ ownerId: pgOwner._id })
+            .populate("ownerId", "ownerName contactNo city state")
             .sort({ createdAt: -1 });
 
         res.status(200).json({
             count: pgListings.length,
             pgListings,
         });
-
     } catch (error) {
         console.error("Get PG Listings Error:", error.message);
 
@@ -84,8 +97,10 @@ const getPGListings = async (req, res) => {
 
 const getPGListingById = async (req, res) => {
     try {
-        const pgListing = await PGListing.findById(req.params.id)
-            .populate("ownerId", "name email phone_no");
+        const pgListing = await PGListing.findById(req.params.id).populate(
+            "ownerId",
+            "ownerName contactNo city state",
+        );
 
         if (!pgListing) {
             return res.status(404).json({
@@ -96,7 +111,6 @@ const getPGListingById = async (req, res) => {
         res.status(200).json({
             pgListing,
         });
-
     } catch (error) {
         if (isInvalidObjectId(error)) {
             return res.status(400).json({
@@ -121,7 +135,7 @@ const updatePGListing = async (req, res) => {
             });
         }
 
-        const pgOwner = await PGOwner.findOne({userId: req.user.userId});
+        const pgOwner = await PGOwner.findOne({ userId: req.user.userId });
 
         if (!pgOwner) {
             return res.status(404).json({
@@ -143,43 +157,14 @@ const updatePGListing = async (req, res) => {
             });
         }
 
-        const {
-            pgName,
-            address,
-            city,
-            state,
-            description,
-            contactNo,
-            amenities
-        } = req.body;
+        const { pgName, address, city, state, description, contactNo } = req.body;
 
-        if (pgName !== undefined) {
-            pgListing.pgName = pgName;
-        }
-
-        if (address !== undefined) {
-            pgListing.address = address;
-        }
-
-        if (city !== undefined) {
-            pgListing.city = city;
-        }
-
-        if (state !== undefined) {
-            pgListing.state = state;
-        }
-
-        if (description !== undefined) {
-            pgListing.description = description;
-        }
-
-        if (contactNo !== undefined) {
-            pgListing.contactNo = contactNo;
-        }
-
-        if (amenities !== undefined) {
-            pgListing.amenities = amenities;
-        }
+        if (pgName !== undefined) pgListing.pgName = pgName;
+        if (address !== undefined) pgListing.address = address;
+        if (city !== undefined) pgListing.city = city;
+        if (state !== undefined) pgListing.state = state;
+        if (description !== undefined) pgListing.description = description;
+        if (contactNo !== undefined) pgListing.contactNo = contactNo;
 
         await pgListing.save();
 
@@ -187,7 +172,6 @@ const updatePGListing = async (req, res) => {
             message: "PG listing updated successfully",
             pgListing,
         });
-
     } catch (error) {
         if (isInvalidObjectId(error)) {
             return res.status(400).json({
@@ -212,7 +196,7 @@ const deletePGListing = async (req, res) => {
             });
         }
 
-        const pgOwner = await PGOwner.findOne({userId: req.user.userId});
+        const pgOwner = await PGOwner.findOne({ userId: req.user.userId });
 
         if (!pgOwner) {
             return res.status(404).json({
@@ -239,7 +223,6 @@ const deletePGListing = async (req, res) => {
         res.status(200).json({
             message: "PG listing deleted successfully",
         });
-
     } catch (error) {
         if (isInvalidObjectId(error)) {
             return res.status(400).json({

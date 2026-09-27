@@ -1,5 +1,6 @@
 const Inquiry = require("../models/Inquiry");
 const PGListing = require("../models/PGListing");
+const PGOwner = require("../models/PGOwner");
 
 const isInvalidObjectId = (error) => error.name === "CastError";
 
@@ -7,7 +8,7 @@ const createInquiry = async (req, res) => {
     try {
         if (req.user.role !== "student") {
             return res.status(403).json({
-                message: "Only students can send inquiries"
+                message: "Only students can send inquiries",
             });
         }
 
@@ -15,7 +16,7 @@ const createInquiry = async (req, res) => {
 
         if (!pgId || !message) {
             return res.status(400).json({
-                message: "PG ID and message are required"
+                message: "PG ID and message are required",
             });
         }
 
@@ -23,25 +24,24 @@ const createInquiry = async (req, res) => {
 
         if (!pg) {
             return res.status(404).json({
-                message: "PG listing not found"
+                message: "PG listing not found",
             });
         }
 
         const inquiry = await Inquiry.create({
             studentId: req.user.userId,
             pgId,
-            message
+            message,
         });
 
         res.status(201).json({
             message: "Inquiry sent successfully",
-            inquiry
+            inquiry,
         });
-
     } catch (error) {
         if (isInvalidObjectId(error)) {
             return res.status(400).json({
-                message: "Invalid PG listing ID"
+                message: "Invalid PG listing ID",
             });
         }
 
@@ -49,7 +49,7 @@ const createInquiry = async (req, res) => {
 
         res.status(500).json({
             message: "Server error",
-            error: error.message
+            error: error.message,
         });
     }
 };
@@ -58,26 +58,24 @@ const getMyInquiries = async (req, res) => {
     try {
         if (req.user.role !== "student") {
             return res.status(403).json({
-                message: "Only students can view their inquiries"
+                message: "Only students can view their inquiries",
             });
         }
 
-        const inquiries = await Inquiry
-            .find({ studentId: req.user.userId })
-            .populate("pgId", "pgName address city")
+        const inquiries = await Inquiry.find({ studentId: req.user.userId })
+            .populate("pgId", "pgName address city state")
             .sort({ createdAt: -1 });
 
         res.status(200).json({
             count: inquiries.length,
-            inquiries
+            inquiries,
         });
-
     } catch (error) {
         console.error("Get My Inquiries Error:", error.message);
 
         res.status(500).json({
             message: "Server error",
-            error: error.message
+            error: error.message,
         });
     }
 };
@@ -86,33 +84,37 @@ const getOwnerInquiries = async (req, res) => {
     try {
         if (req.user.role !== "pg_owner") {
             return res.status(403).json({
-                message: "Only PG Owners can view inquiries"
+                message: "Only PG Owners can view inquiries",
             });
         }
 
-        const myPGs = await PGListing.find({
-            ownerId: req.user.userId
-        }).select("_id");
+        const pgOwner = await PGOwner.findOne({ userId: req.user.userId });
+
+        if (!pgOwner) {
+            return res.status(404).json({
+                message: "PG Owner account not found",
+            });
+        }
+
+        const myPGs = await PGListing.find({ ownerId: pgOwner._id }).select("_id");
 
         const pgIds = myPGs.map((pg) => pg._id);
 
-        const inquiries = await Inquiry
-            .find({ pgId: { $in: pgIds } })
+        const inquiries = await Inquiry.find({ pgId: { $in: pgIds } })
             .populate("studentId", "name email phone_no")
-            .populate("pgId", "pgName address city")
+            .populate("pgId", "pgName address city state")
             .sort({ createdAt: -1 });
 
         res.status(200).json({
             count: inquiries.length,
-            inquiries
+            inquiries,
         });
-
     } catch (error) {
         console.error("Get Owner Inquiries Error:", error.message);
 
         res.status(500).json({
             message: "Server error",
-            error: error.message
+            error: error.message,
         });
     }
 };
@@ -121,7 +123,7 @@ const respondToInquiry = async (req, res) => {
     try {
         if (req.user.role !== "pg_owner") {
             return res.status(403).json({
-                message: "Only PG Owners can respond to inquiries"
+                message: "Only PG Owners can respond to inquiries",
             });
         }
 
@@ -129,23 +131,29 @@ const respondToInquiry = async (req, res) => {
 
         if (!response) {
             return res.status(400).json({
-                message: "Response is required"
+                message: "Response is required",
             });
         }
 
-        const inquiry = await Inquiry
-            .findById(req.params.id)
-            .populate("pgId");
+        const inquiry = await Inquiry.findById(req.params.id).populate("pgId");
 
         if (!inquiry) {
             return res.status(404).json({
-                message: "Inquiry not found"
+                message: "Inquiry not found",
             });
         }
 
-        if (inquiry.pgId.ownerId.toString() !== req.user.userId) {
+        const pgOwner = await PGOwner.findOne({ userId: req.user.userId });
+
+        if (!pgOwner) {
+            return res.status(404).json({
+                message: "PG Owner account not found",
+            });
+        }
+
+        if (inquiry.pgId.ownerId.toString() !== pgOwner._id.toString()) {
             return res.status(403).json({
-                message: "You can only respond to inquiries for your own PG"
+                message: "You can only respond to inquiries for your own PG",
             });
         }
 
@@ -156,13 +164,12 @@ const respondToInquiry = async (req, res) => {
 
         res.status(200).json({
             message: "Inquiry response sent successfully",
-            inquiry
+            inquiry,
         });
-
     } catch (error) {
         if (isInvalidObjectId(error)) {
             return res.status(400).json({
-                message: "Invalid inquiry ID"
+                message: "Invalid inquiry ID",
             });
         }
 
@@ -170,7 +177,7 @@ const respondToInquiry = async (req, res) => {
 
         res.status(500).json({
             message: "Server error",
-            error: error.message
+            error: error.message,
         });
     }
 };
@@ -179,5 +186,5 @@ module.exports = {
     createInquiry,
     getMyInquiries,
     getOwnerInquiries,
-    respondToInquiry
+    respondToInquiry,
 };

@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { registerUser } from "../services/authService";
+import { useAuth } from "../context/AuthContext";
 import "../index.css";
 
 function Register() {
     const navigate = useNavigate();
+    const { register } = useAuth();
 
     const [formData, setFormData] = useState({
         name: "",
@@ -33,7 +34,7 @@ function Register() {
         setLoading(true);
 
         try {
-            await registerUser(formData);
+            await register(formData);
             setSuccess("Account created successfully. Please sign in.");
 
             setTimeout(() => {

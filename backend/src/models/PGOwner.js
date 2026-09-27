@@ -6,37 +6,34 @@ const pgOwnerSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             required: true,
-            unique: true
+            unique: true,
         },
 
-        businessName: {
+        ownerName: {
             type: String,
-            trim: true
+            required: true,
+            trim: true,
         },
 
         contactNo: {
             type: String,
-            trim: true
-        },
-
-        address: {
-            type: String,
-            trim: true
+            required: true,
+            trim: true,
         },
 
         city: {
             type: String,
-            trim: true
+            trim: true,
         },
 
         state: {
             type: String,
-            trim: true
-        }
+            trim: true,
+        },
     },
     {
-        timestamps: true
-    }
+        timestamps: true,
+    },
 );
 
 module.exports = mongoose.model("PGOwner", pgOwnerSchema);
