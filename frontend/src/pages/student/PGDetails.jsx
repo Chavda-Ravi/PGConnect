@@ -18,6 +18,7 @@ function PGDetails() {
     const [pg, setPg] = useState(null);
     const [availability, setAvailability] = useState(null);
     const [reviews, setReviews] = useState([]);
+    const [myBookings, setMyBookings] = useState([]);
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -106,7 +107,6 @@ function PGDetails() {
                 if (!cancelled) setReviews([]);
             }
 
-            // Favorite status
             try {
                 const favData = await checkFavorite(id);
                 if (!cancelled) setIsFavorite(Boolean(favData.isFavorite));
@@ -114,13 +114,15 @@ function PGDetails() {
                 if (!cancelled) setIsFavorite(false);
             }
 
-            // Is there an accepted booking for this PG I can review?
+            // Student's own bookings — for review eligibility and booking guards
             try {
                 const bookingsData = await getStudentBookings();
                 if (!cancelled) {
                     const list = Array.isArray(bookingsData)
                         ? bookingsData
                         : bookingsData.bookings || [];
+                    setMyBookings(list);
+
                     const accepted = list.find(
                         (b) =>
                             b.pgId &&
@@ -130,7 +132,10 @@ function PGDetails() {
                     setAcceptedBooking(accepted || null);
                 }
             } catch {
-                if (!cancelled) setAcceptedBooking(null);
+                if (!cancelled) {
+                    setMyBookings([]);
+                    setAcceptedBooking(null);
+                }
             }
 
             if (!cancelled) setLoading(false);
@@ -260,7 +265,9 @@ function PGDetails() {
         setReviewSuccess("");
 
         if (!acceptedBooking) {
-            setReviewError("You can only review a PG after a booking is accepted.");
+            setReviewError(
+                "You can only review a PG after a booking is accepted.",
+            );
             return;
         }
 
@@ -287,6 +294,54 @@ function PGDetails() {
             setReviewSending(false);
         }
     };
+
+    /* ----- Derived state (before render) ----- */
+
+    // Latest date the student is allowed to start (today + 6 months)
+    const maxStartDate = (() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() + 6);
+        return d.toISOString().slice(0, 10);
+    })();
+
+    // Min start date is tomorrow
+    const minStartDate = (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        return d.toISOString().slice(0, 10);
+    })();
+
+    const hasAcceptedHere = myBookings.some(
+        (b) =>
+            b.status === "accepted" &&
+            b.pgId &&
+            (b.pgId._id || b.pgId) === id,
+    );
+
+    const hasAcceptedElsewhere = myBookings.some(
+        (b) =>
+            b.status === "accepted" &&
+            b.pgId &&
+            (b.pgId._id || b.pgId) !== id,
+    );
+
+    const hasPendingHere = myBookings.some(
+        (b) =>
+            b.status === "pending" &&
+            b.pgId &&
+            (b.pgId._id || b.pgId) === id,
+    );
+
+    const bookingLocked =
+        hasAcceptedHere || hasAcceptedElsewhere || hasPendingHere;
+
+    const bookingLockReason = hasAcceptedHere
+        ? "You already have an accepted booking for this PG."
+        : hasAcceptedElsewhere
+          ? "You already have an accepted booking for another PG. You cannot request this one until that booking is cancelled."
+          : hasPendingHere
+            ? "You already have a pending booking request for this PG."
+            : "";
 
     if (loading) {
         return (
@@ -321,7 +376,6 @@ function PGDetails() {
               ).toFixed(1)
             : null;
 
-    // Review form only if: accepted booking exists AND no review yet
     const canReview = acceptedBooking && !myReview;
 
     return (
@@ -474,57 +528,66 @@ function PGDetails() {
                         </div>
                     )}
 
-                    <form
-                        className="booking-form"
-                        onSubmit={handleBookingSubmit}
-                    >
-                        <div className="booking-form-row">
-                            <label className="field">
-                                <span>Start date</span>
-                                <input
-                                    type="date"
-                                    name="startDate"
-                                    value={bookingForm.startDate}
-                                    onChange={handleBookingChange}
-                                    required
-                                />
-                            </label>
-
-                            <label className="field">
-                                <span>Duration (months)</span>
-                                <input
-                                    type="number"
-                                    name="duration"
-                                    min="1"
-                                    placeholder="e.g. 6"
-                                    value={bookingForm.duration}
-                                    onChange={handleBookingChange}
-                                    required
-                                />
-                            </label>
-                        </div>
-
-                        <label className="field">
-                            <span>Message (optional)</span>
-                            <textarea
-                                name="message"
-                                rows="3"
-                                placeholder="Anything the owner should know?"
-                                value={bookingForm.message}
-                                onChange={handleBookingChange}
-                            />
-                        </label>
-
-                        <button
-                            type="submit"
-                            className="auth-button"
-                            disabled={bookingSending}
+                    {bookingLocked ? (
+                        <p className="pgd-muted">{bookingLockReason}</p>
+                    ) : (
+                        <form
+                            className="booking-form"
+                            onSubmit={handleBookingSubmit}
                         >
-                            {bookingSending
-                                ? "Sending…"
-                                : "Request booking"}
-                        </button>
-                    </form>
+                            <div className="booking-form-row">
+                                <label className="field">
+                                    <span>Start date</span>
+                                    <input
+                                        type="date"
+                                        name="startDate"
+                                        min={minStartDate}
+                                        max={maxStartDate}
+                                        value={bookingForm.startDate}
+                                        onChange={handleBookingChange}
+                                        required
+                                    />
+                                    <small className="field-hint">
+                                        Must be within the next 6 months.
+                                    </small>
+                                </label>
+
+                                <label className="field">
+                                    <span>Duration (months)</span>
+                                    <input
+                                        type="number"
+                                        name="duration"
+                                        min="1"
+                                        placeholder="e.g. 6"
+                                        value={bookingForm.duration}
+                                        onChange={handleBookingChange}
+                                        required
+                                    />
+                                </label>
+                            </div>
+
+                            <label className="field">
+                                <span>Message (optional)</span>
+                                <textarea
+                                    name="message"
+                                    rows="3"
+                                    placeholder="Anything the owner should know?"
+                                    value={bookingForm.message}
+                                    onChange={handleBookingChange}
+                                />
+                            </label>
+
+                            <button
+                                type="submit"
+                                className="auth-button"
+                                disabled={bookingSending}
+                            >
+                                {bookingSending
+                                    ? "Sending…"
+                                    : "Request booking"}
+                            </button>
+                        </form>
+                    )}
                 </section>
 
                 <section className="pgd-card">
@@ -592,19 +655,15 @@ function PGDetails() {
                         </p>
                     )}
 
-                    {!canReview &&
-                        !myReview &&
-                        !acceptedBooking && (
-                            <p className="pgd-muted">
-                                You can review this PG after your booking is
-                                accepted.
-                            </p>
-                        )}
+                    {!canReview && !myReview && !acceptedBooking && (
+                        <p className="pgd-muted">
+                            You can review this PG after your booking is
+                            accepted.
+                        </p>
+                    )}
 
                     {reviews.length === 0 ? (
-                        <p className="pgd-muted">
-                            No reviews yet.
-                        </p>
+                        <p className="pgd-muted">No reviews yet.</p>
                     ) : (
                         <ul className="pgd-review-list">
                             {reviews.map((review) => (

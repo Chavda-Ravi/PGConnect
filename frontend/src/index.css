@@ -884,6 +884,13 @@
     font-size: 14px;
 }
 
+.field-hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    color: #9a97b3;
+}
+
 /* ---------- PG card action row ---------- */
 
 .pg-card-actions {

@@ -34,6 +34,16 @@ const createBooking = async (req, res) => {
             });
         }
 
+        // Constraint 1: start date cannot be more than 6 months out
+        const sixMonthsFromNow = new Date();
+        sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
+
+        if (bookingStartDate > sixMonthsFromNow) {
+            return res.status(400).json({
+                message: "Start date cannot be more than 6 months in the future",
+            });
+        }
+
         if (duration < 1) {
             return res.status(400).json({
                 message: "Duration must be at least 1 month",
@@ -48,6 +58,20 @@ const createBooking = async (req, res) => {
             });
         }
 
+        // Constraint 2: student cannot request another PG while they have an accepted booking
+        const acceptedElsewhere = await Booking.findOne({
+            studentId: req.user.userId,
+            status: "accepted",
+        });
+
+        if (acceptedElsewhere) {
+            return res.status(409).json({
+                message:
+                    "You already have an accepted booking. You cannot request another PG until that booking is cancelled or completed.",
+            });
+        }
+
+        // Constraint 4: no duplicate active request on the same PG
         const existingBooking = await Booking.findOne({
             studentId: req.user.userId,
             pgId,
@@ -237,6 +261,20 @@ const acceptBooking = async (req, res) => {
             });
         }
 
+        // Safety: don't let the student end up with two accepted bookings
+        const alreadyAccepted = await Booking.findOne({
+            studentId: booking.studentId,
+            status: "accepted",
+            _id: { $ne: booking._id },
+        });
+
+        if (alreadyAccepted) {
+            return res.status(409).json({
+                message:
+                    "This student already has an accepted booking for another PG. Reject this request or ask the student to cancel.",
+            });
+        }
+
         booking.status = "accepted";
         await booking.save();
 
@@ -341,9 +379,9 @@ const cancelBooking = async (req, res) => {
             });
         }
 
-        if (booking.status !== "pending") {
+        if (booking.status !== "pending" && booking.status !== "accepted") {
             return res.status(400).json({
-                message: "Only pending bookings can be cancelled",
+                message: "Only pending or accepted bookings can be cancelled",
             });
         }
 

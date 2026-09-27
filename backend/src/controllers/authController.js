@@ -129,8 +129,40 @@ const loginUser = async (req, res) => {
     }
 };
 
+// Get the currently authenticated user (token → user)
+const getMe = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.userId).select(
+            "-password",
+        );
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+            });
+        }
+
+        res.status(200).json({
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                phone_no: user.phone_no,
+                role: user.role,
+            },
+        });
+    } catch (error) {
+        console.error("Get Me Error:", error.message);
+
+        res.status(500).json({
+            message: "Server error",
+            error: error.message,
+        });
+    }
+};
 
 module.exports = {
     registerUser,
-    loginUser
+    loginUser,
+    getMe
 };

@@ -92,6 +92,14 @@ function MyBookings() {
 
                 {error && <div className="auth-alert error">{error}</div>}
 
+                {bookings.some((b) => b.status === "accepted") && (
+                    <div className="auth-alert success">
+                        You have an accepted booking. You cannot request another PG
+                        until that booking is cancelled.
+                    </div>
+                )}
+
+
                 {bookings.length === 0 ? (
                     <div className="owner-empty">
                         <p>You haven&apos;t requested any bookings yet.</p>
@@ -156,7 +164,7 @@ function MyBookings() {
                                     </>
                                 )}
 
-                                {b.status === "pending" && (
+                                {(b.status === "pending" || b.status === "accepted") && (
                                     <div className="owner-form-actions">
                                         <button
                                             type="button"
