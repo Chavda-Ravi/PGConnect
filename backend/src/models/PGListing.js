@@ -38,7 +38,12 @@ const pgListingSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        
+
+        // Cloudinary URLs only — never store binary data in Mongo
+        images: {
+            type: [String],
+            default: [],
+        },
     },
     {
         timestamps: true,

@@ -18,7 +18,7 @@ router.post("/", protect, addPGListing);
 
 
 // Get all PG listings
-router.get("/", getPGListings);
+router.get("/", protect, getPGListings);
 
 
 // Get PG listing by ID

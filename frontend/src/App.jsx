@@ -16,6 +16,7 @@ import MyInquiries from "./pages/student/MyInquiries";
 import MyBookings from "./pages/student/MyBookings";
 import Favorites from "./pages/student/Favorites";
 import MyReviews from "./pages/student/MyReviews";
+import StudentProfile from "./pages/student/StudentProfile";
 
 import OwnerDashboard from "./pages/owner/OwnerDashboard";
 import OwnerProfile from "./pages/owner/OwnerProfile";
@@ -96,6 +97,14 @@ function App() {
                         element={
                             <ProtectedRoute role="student">
                                 <MyReviews />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/student/profile"
+                        element={
+                            <ProtectedRoute role="student">
+                                <StudentProfile />
                             </ProtectedRoute>
                         }
                     />
