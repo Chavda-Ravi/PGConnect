@@ -67,6 +67,37 @@ function MyPGs() {
           <div className="search-grid">
             {pgs.map((pg) => (
               <article className="pg-card" key={pg._id}>
+                <div
+                  className="preview-card-image"
+                  style={{ borderRadius: 12 }}
+                >
+                  {pg.images && pg.images[0] ? (
+                    <img
+                      src={pg.images[0]}
+                      alt={pg.pgName}
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                        if (e.currentTarget.nextElementSibling) {
+                          e.currentTarget.nextElementSibling.style.display =
+                            "flex";
+                        }
+                      }}
+                    />
+                  ) : null}
+                  <div
+                    className="preview-card-placeholder"
+                    style={{
+                      display:
+                        pg.images && pg.images[0]
+                          ? "none"
+                          : "flex",
+                      minHeight: "150px",
+                    }}
+                  >
+                    No photo
+                  </div>
+                </div>
+
                 <div className="pg-card-body">
                   <h3>{pg.pgName}</h3>
                   <p className="pg-card-location">
