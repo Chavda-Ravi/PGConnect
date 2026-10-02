@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import PGForm from "../../components/PGForm";
 import { getMyPGById, updatePG, deletePG } from "../../services/pgService";
 import "../../index.css";
 
@@ -7,31 +8,26 @@ function EditPG() {
     const { id } = useParams();
     const navigate = useNavigate();
 
-    const [formData, setFormData] = useState({
-        pgName: "",
-        address: "",
-        city: "",
-        state: "",
-        description: "",
-        contactNo: "",
-    });
+    const [loadedValues, setLoadedValues] = useState(null);
+    const [loadedImages, setLoadedImages] = useState([]);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [fatalError, setFatalError] = useState("");
 
     useEffect(() => {
         const load = async () => {
             setLoading(true);
-            setError("");
+            setFatalError("");
 
             try {
                 const data = await getMyPGById(id);
                 const pg = data.pgListing || data.pg || data.data || data;
 
-                setFormData({
+                setLoadedValues({
                     pgName: pg.pgName || "",
                     address: pg.address || "",
                     city: pg.city || "",
@@ -39,17 +35,19 @@ function EditPG() {
                     description: pg.description || "",
                     contactNo: pg.contactNo || "",
                 });
+
+                setLoadedImages(Array.isArray(pg.images) ? pg.images : []);
             } catch (err) {
                 if (!err.response) {
-                    setError(
+                    setFatalError(
                         "Backend is not responding. Please restart the server and try again.",
                     );
                 } else if (err.response.status === 404) {
-                    setError("This PG listing could not be found.");
+                    setFatalError("This PG listing could not be found.");
                 } else if (err.response.status === 403) {
-                    setError("You can only edit your own PG listings.");
+                    setFatalError("You can only edit your own PG listings.");
                 } else {
-                    setError(
+                    setFatalError(
                         err.response.data?.message ||
                             "Could not load PG details.",
                     );
@@ -62,23 +60,13 @@ function EditPG() {
         load();
     }, [id]);
 
-    const handleChange = (event) => {
-        setFormData({
-            ...formData,
-            [event.target.name]: event.target.value,
-        });
-        setError("");
-        setSuccess("");
-    };
-
-    const handleSubmit = async (event) => {
-        event.preventDefault();
+    const handleSubmit = async (formData, images) => {
         setError("");
         setSuccess("");
         setSaving(true);
 
         try {
-            await updatePG(id, formData);
+            await updatePG(id, { ...formData, images });
             setSuccess("PG updated successfully.");
         } catch (err) {
             if (!err.response) {
@@ -99,7 +87,6 @@ function EditPG() {
         const confirmed = window.confirm(
             "Delete this PG listing? This cannot be undone.",
         );
-
         if (!confirmed) return;
 
         setError("");
@@ -125,117 +112,61 @@ function EditPG() {
 
     if (loading) {
         return (
-            <main className="owner-page">
-                <div className="owner-inner">
+            <main className="create-page">
+                <div className="create-inner">
                     <div className="owner-loading">Loading PG…</div>
                 </div>
             </main>
         );
     }
 
+    if (fatalError) {
+        return (
+            <main className="create-page">
+                <div className="create-inner">
+                    <Link className="owner-back" to="/owner/pgs">
+                        ← Back to my PGs
+                    </Link>
+                    <div className="auth-alert error" style={{ marginTop: 16 }}>
+                        {fatalError}
+                    </div>
+                </div>
+            </main>
+        );
+    }
+
     return (
-        <main className="owner-page">
-            <div className="owner-inner">
+        <main className="create-page">
+            <div className="create-inner">
                 <Link className="owner-back" to="/owner/pgs">
                     ← Back to my PGs
                 </Link>
 
-                <header className="owner-header">
-                    <p className="owner-kicker">Edit listing</p>
-                    <h1>Edit PG</h1>
-                    <p>Update the details of your PG listing.</p>
+                <header className="create-header">
+                    <div>
+                        <p className="owner-kicker">Edit listing</p>
+                        <h1>Edit PG</h1>
+                        <p className="create-subtitle">
+                            Update the details of your PG listing.
+                        </p>
+                    </div>
                 </header>
 
                 {error && <div className="auth-alert error">{error}</div>}
-                {success && <div className="auth-alert success">{success}</div>}
+                {success && (
+                    <div className="auth-alert success">{success}</div>
+                )}
 
-                {!error || !error.startsWith("This PG") ? (
-                    <form className="owner-form" onSubmit={handleSubmit}>
-                        <label className="field">
-                            <span>PG name</span>
-                            <input
-                                type="text"
-                                name="pgName"
-                                value={formData.pgName}
-                                onChange={handleChange}
-                                required
-                            />
-                        </label>
-
-                        <label className="field">
-                            <span>Address</span>
-                            <input
-                                type="text"
-                                name="address"
-                                value={formData.address}
-                                onChange={handleChange}
-                                required
-                            />
-                        </label>
-
-                        <label className="field">
-                            <span>City</span>
-                            <input
-                                type="text"
-                                name="city"
-                                value={formData.city}
-                                onChange={handleChange}
-                                required
-                            />
-                        </label>
-
-                        <label className="field">
-                            <span>State</span>
-                            <input
-                                type="text"
-                                name="state"
-                                value={formData.state}
-                                onChange={handleChange}
-                                required
-                            />
-                        </label>
-
-                        <label className="field">
-                            <span>Description</span>
-                            <input
-                                type="text"
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                            />
-                        </label>
-
-                        <label className="field">
-                            <span>Contact number</span>
-                            <input
-                                type="tel"
-                                name="contactNo"
-                                value={formData.contactNo}
-                                onChange={handleChange}
-                                required
-                            />
-                        </label>
-
-                        <div className="owner-form-actions">
-                            <button
-                                className="auth-button"
-                                type="submit"
-                                disabled={saving}
-                            >
-                                {saving ? "Saving…" : "Save changes"}
-                            </button>
-
-                            <button
-                                type="button"
-                                className="owner-danger-button"
-                                onClick={handleDelete}
-                                disabled={deleting}
-                            >
-                                {deleting ? "Deleting…" : "Delete PG"}
-                            </button>
-                        </div>
-                    </form>
-                ) : null}
+                <PGForm
+                    mode="edit"
+                    initialValues={loadedValues}
+                    initialImages={loadedImages}
+                    onSubmit={handleSubmit}
+                    onDelete={handleDelete}
+                    submitting={saving}
+                    deleting={deleting}
+                    backTo="/owner/pgs"
+                />
             </div>
         </main>
     );

@@ -37,6 +37,7 @@ function Navbar() {
                             <Link to="/student/inquiries">My Inquiries</Link>
                             <Link to="/student/reviews">My Reviews</Link>
                             <Link to="/student/favorites">Favorites</Link>
+                            <Link to="/student/profile">Profile</Link>
                         </>
                     )}
 

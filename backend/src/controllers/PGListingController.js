@@ -3,6 +3,16 @@ const PGOwner = require("../models/PGOwner");
 
 const isInvalidObjectId = (error) => error.name === "CastError";
 
+const MAX_IMAGES = 5;
+
+const sanitizeImages = (images) => {
+    if (!Array.isArray(images)) return null;
+
+    return images
+        .filter((url) => typeof url === "string" && url.startsWith("http"))
+        .slice(0, MAX_IMAGES);
+};
+
 const addPGListing = async (req, res) => {
     try {
         if (req.user.role !== "pg_owner") {
@@ -19,7 +29,15 @@ const addPGListing = async (req, res) => {
             });
         }
 
-        const { pgName, address, city, state, description, contactNo } = req.body;
+        const {
+            pgName,
+            address,
+            city,
+            state,
+            description,
+            contactNo,
+            images,
+        } = req.body;
 
         if (!pgName || !address || !city || !state || !contactNo) {
             return res.status(400).json({
@@ -27,6 +45,8 @@ const addPGListing = async (req, res) => {
                     "PG name, address, city, state and contact number are required",
             });
         }
+
+        const cleanImages = sanitizeImages(images) || [];
 
         const pgListing = await PGListing.create({
             ownerId: pgOwner._id,
@@ -36,6 +56,7 @@ const addPGListing = async (req, res) => {
             state,
             description,
             contactNo,
+            images: cleanImages,
         });
 
         res.status(201).json({
@@ -52,11 +73,8 @@ const addPGListing = async (req, res) => {
     }
 };
 
-// Owner-scoped: returns the logged-in owner's PGs.
-// If no token / not an owner, falls through to all PGs (used by public discovery if needed).
 const getPGListings = async (req, res) => {
     try {
-        // No JWT → return all (used by nothing right now, but safe)
         if (!req.user || req.user.role !== "pg_owner") {
             const pgListings = await PGListing.find()
                 .populate("ownerId", "ownerName contactNo city state")
@@ -68,7 +86,6 @@ const getPGListings = async (req, res) => {
             });
         }
 
-        // Owner → return only their own PGs
         const pgOwner = await PGOwner.findOne({ userId: req.user.userId });
 
         if (!pgOwner) {
@@ -87,7 +104,6 @@ const getPGListings = async (req, res) => {
         });
     } catch (error) {
         console.error("Get PG Listings Error:", error.message);
-
         res.status(500).json({
             message: "Server error",
             error: error.message,
@@ -157,7 +173,15 @@ const updatePGListing = async (req, res) => {
             });
         }
 
-        const { pgName, address, city, state, description, contactNo } = req.body;
+        const {
+            pgName,
+            address,
+            city,
+            state,
+            description,
+            contactNo,
+            images,
+        } = req.body;
 
         if (pgName !== undefined) pgListing.pgName = pgName;
         if (address !== undefined) pgListing.address = address;
@@ -165,6 +189,13 @@ const updatePGListing = async (req, res) => {
         if (state !== undefined) pgListing.state = state;
         if (description !== undefined) pgListing.description = description;
         if (contactNo !== undefined) pgListing.contactNo = contactNo;
+
+        if (images !== undefined) {
+            const clean = sanitizeImages(images);
+            if (clean !== null) {
+                pgListing.images = clean;
+            }
+        }
 
         await pgListing.save();
 

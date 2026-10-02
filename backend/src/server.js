@@ -16,6 +16,7 @@ const bookingRoutes = require("./routes/bookingRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const favoriteRoutes = require("./routes/favoriteRoutes");
 const availabilityRoutes = require("./routes/availabilityRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
 
 connectDB();
 
@@ -41,9 +42,6 @@ app.get("/", (req, res) => {
     res.send("PG Connect Backend is running!");
 });
 
-// Auth routes get their own stricter limiter (5/min per IP)
-// applied inside the auth router itself
-
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/pgs", pgListingRoutes);
@@ -55,6 +53,7 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/favorites", favoriteRoutes);
 app.use("/api/availability", availabilityRoutes);
+app.use("/api/uploads", uploadRoutes);
 
 const PORT = process.env.PORT || 5000;
 
