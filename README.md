@@ -10,6 +10,25 @@ Three roles:
 
 ---
 
+# Live Deployment
+
+| Service  | URL |
+| -------- | --- |
+| Frontend | https://pgconnect-web.netlify.app |
+| Backend  | https://pgconnect-backend.onrender.com |
+| Frontend project dashboard | https://app.netlify.com/projects/pgconnect-web |
+| Backend project dashboard  | https://dashboard.render.com |
+
+**Hosting stack:**
+
+- **Frontend** → Netlify (free tier)
+- **Backend**  → Render (free tier, spins down after 15 min of inactivity)
+- **Database** → MongoDB Atlas (free tier)
+- **Cache / rate limit** → Upstash Redis (free tier)
+- **Image uploads** → Cloudinary (free tier)
+
+---
+
 # Tech Stack
 
 **Backend**
@@ -21,6 +40,8 @@ Three roles:
 - bcryptjs
 - dotenv
 - nodemon (dev)
+- Upstash Redis (caching + rate limiting)
+- Cloudinary (image hosting)
 
 **Frontend**
 
@@ -31,14 +52,14 @@ Three roles:
 
 ---
 
-# Getting Started
+# Getting Started (Local Development)
 
 Follow these steps to run the project on your system.
 
 ## 1. Clone the Repository
 
 ```bash
-git clone <YOUR_GITHUB_REPOSITORY_URL>
+git clone https://github.com/Chavda-Ravi/PGConnect.git
 ```
 
 Go inside the project:
@@ -97,6 +118,12 @@ Inside `backend/`, create a file named `.env`:
 PORT=5000
 MONGO_URI=YOUR_MONGODB_CONNECTION_STRING
 JWT_SECRET=YOUR_JWT_SECRET
+UPSTASH_REDIS_REST_URL=YOUR_UPSTASH_URL
+UPSTASH_REDIS_REST_TOKEN=YOUR_UPSTASH_TOKEN
+CLOUDINARY_CLOUD_NAME=YOUR_CLOUD_NAME
+CLOUDINARY_API_KEY=YOUR_API_KEY
+CLOUDINARY_API_SECRET=YOUR_API_SECRET
+FRONTEND_URL=http://localhost:5173
 ```
 
 Example:
@@ -105,6 +132,12 @@ Example:
 PORT=5000
 MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/PGConnect
 JWT_SECRET=your_secret_key
+UPSTASH_REDIS_REST_URL=https://xxxxx.upstash.io
+UPSTASH_REDIS_REST_TOKEN=gQAAAAAxxxxxxxxxxxxxx
+CLOUDINARY_CLOUD_NAME=ainebook
+CLOUDINARY_API_KEY=979283251641996
+CLOUDINARY_API_SECRET=xxxxxxxxxxxxxxxx
+FRONTEND_URL=http://localhost:5173
 ```
 
 **Important**
@@ -126,6 +159,8 @@ Expected output:
 ```text
 Server running on port 5000
 MongoDB connected
+Upstash Redis client initialized
+Cloudinary client initialized
 ```
 
 Backend URL:
@@ -170,9 +205,9 @@ Frontend URL:
 http://localhost:5173
 ```
 
-### 3.3 API Proxy
+### 3.3 API Proxy (Dev Only)
 
-Vite is configured to proxy `/api/*` requests to the backend on port 5000. This means the frontend can call `axios.get("/api/...")` and it will hit `http://localhost:5000/api/...` automatically.
+In development, Vite proxies `/api/*` requests to the backend on port 5000. This means the frontend can call `axios.get("/api/...")` and it will hit `http://localhost:5000/api/...` automatically.
 
 The API base URL is defined in `frontend/src/services/api.js`:
 
@@ -183,7 +218,7 @@ const api = axios.create({
 });
 ```
 
-If you change the backend port, update `frontend/vite.config.js` proxy settings.
+**In production, this changes to the full Render URL.** See the "Deployment" section below.
 
 ---
 
@@ -194,22 +229,28 @@ backend/
 │
 ├── src/
 │   ├── config/
-│   │   └── db.js
+│   │   ├── db.js
+│   │   ├── redis.js
+│   │   └── cloudinary.js
 │   │
 │   ├── controllers/
 │   │   ├── authController.js
 │   │   ├── userController.js
 │   │   ├── pgOwnerController.js
-│   │   ├── pgController.js
+│   │   ├── PGListingController.js
 │   │   ├── availabilityController.js
 │   │   ├── inquiryController.js
 │   │   ├── bookingController.js
 │   │   ├── reviewController.js
-│   │   └── favoriteController.js
+│   │   ├── favoriteController.js
+│   │   ├── discoveryController.js
+│   │   └── uploadController.js
 │   │
 │   ├── middleware/
 │   │   ├── authMiddleware.js
-│   │   └── roleMiddleware.js
+│   │   ├── roleMiddleware.js
+│   │   ├── rateLimit.js
+│   │   └── upload.js
 │   │
 │   ├── models/
 │   │   ├── User.js
@@ -226,16 +267,18 @@ backend/
 │   │   ├── authRoutes.js
 │   │   ├── userRoutes.js
 │   │   ├── pgOwnerRoutes.js
-│   │   ├── pgRoutes.js
-│   │   ├── discoveryRoutes.js
+│   │   ├── PGListingRoutes.js
+│   │   ├── pgDiscoveryRoutes.js
 │   │   ├── availabilityRoutes.js
 │   │   ├── inquiryRoutes.js
 │   │   ├── bookingRoutes.js
 │   │   ├── reviewRoutes.js
-│   │   └── favoriteRoutes.js
+│   │   ├── favoriteRoutes.js
+│   │   └── uploadRoutes.js
 │   │
 │   ├── scripts/
-│   │   └── createAdmin.js
+│   │   ├── createAdmin.js
+│   │   └── seedPGs.js
 │   │
 │   └── server.js
 │
@@ -253,7 +296,8 @@ frontend/
 └── src/
     ├── components/
     │   ├── Navbar.jsx
-    │   └── ProtectedRoute.jsx
+    │   ├── ProtectedRoute.jsx
+    │   └── PGForm.jsx
     │
     ├── pages/
     │   ├── Home.jsx
@@ -262,6 +306,7 @@ frontend/
     │   │
     │   ├── student/
     │   │   ├── StudentDashboard.jsx
+    │   │   ├── StudentProfile.jsx
     │   │   ├── PGSearch.jsx
     │   │   ├── PGDetails.jsx
     │   │   ├── Favorites.jsx
@@ -273,22 +318,26 @@ frontend/
     │       ├── OwnerDashboard.jsx
     │       ├── OwnerProfile.jsx
     │       ├── MyPGs.jsx
+    │       ├── PGDetails.jsx
     │       ├── AddPG.jsx
     │       ├── EditPG.jsx
     │       ├── Availability.jsx
     │       ├── BookingRequests.jsx
-    │       └── Inquiries.jsx
+    │       ├── Inquiries.jsx
+    │       └── Reviews.jsx
     │
     ├── services/
     │   ├── api.js
     │   ├── authService.js
     │   ├── pgService.js
     │   ├── pgOwnerService.js
+    │   ├── studentService.js
     │   ├── availabilityService.js
     │   ├── inquiryService.js
     │   ├── bookingService.js
     │   ├── reviewService.js
-    │   └── favoriteService.js
+    │   ├── favoriteService.js
+    │   └── uploadService.js
     │
     ├── context/
     │   └── AuthContext.jsx
@@ -361,117 +410,126 @@ Discovery searches the `PGListing` collection. It is not a separate MongoDB coll
 | ------ | ----------- | ----------------------------------- |
 | POST   | `/register` | Register (student or pg_owner only) |
 | POST   | `/login`    | Login and receive JWT               |
+| GET    | `/me`       | Get authenticated user (session check) |
 
 ## Users — `/api/users` (admin)
 
-| Method | Path   | Description   |
-| ------ | ------ | ------------- |
-| GET    | `/`    | List users    |
-| POST   | `/`    | Create user   |
+| Method | Path   | Description    |
+| ------ | ------ | -------------- |
+| GET    | `/`    | List users     |
+| POST   | `/`    | Create user    |
 | GET    | `/:id` | Get user by ID |
-| PUT    | `/:id` | Update user   |
-| DELETE | `/:id` | Delete user   |
+| PUT    | `/:id` | Update user    |
+| DELETE | `/:id` | Delete user    |
 
 ## PG Owner Profile — `/api/pgowners`
 
-| Method | Path       | Description                |
-| ------ | ---------- | -------------------------- |
-| POST   | `/profile` | Create owner profile       |
-| GET    | `/profile` | Get own owner profile      |
-| PUT    | `/profile` | Update own owner profile   |
+| Method | Path       | Description              |
+| ------ | ---------- | ------------------------ |
+| POST   | `/profile` | Create owner profile     |
+| GET    | `/profile` | Get own owner profile    |
+| PUT    | `/profile` | Update own owner profile |
 
 ## PG Listings (owner) — `/api/pgs`
 
-| Method | Path   | Description         |
-| ------ | ------ | ------------------- |
-| POST   | `/`    | Create PG listing   |
-| GET    | `/`    | Get own PG listings |
-| GET    | `/:id` | Get PG by ID        |
-| PUT    | `/:id` | Update own PG       |
-| DELETE | `/:id` | Delete own PG       |
+| Method | Path   | Description          |
+| ------ | ------ | -------------------- |
+| POST   | `/`    | Create PG listing    |
+| GET    | `/`    | Get own PG listings  |
+| GET    | `/:id` | Get PG by ID         |
+| PUT    | `/:id` | Update own PG        |
+| DELETE | `/:id` | Delete own PG        |
 
 ## Discovery (student / public) — `/api/discovery/pgs`
 
-| Method | Path      | Description                   |
-| ------ | --------- | ----------------------------- |
-| GET    | `/`       | Get all PGs                   |
+| Method | Path      | Description                     |
+| ------ | --------- | ------------------------------- |
+| GET    | `/`       | Get all PGs                     |
 | GET    | `/search` | Search by `state` and/or `city` |
-| GET    | `/:id`    | Get PG details                |
+| GET    | `/:id`    | Get PG details                  |
 
 ## Availability — `/api/availability`
 
-| Method | Path         | Description                    |
-| ------ | ------------ | ------------------------------ |
-| POST   | `/`          | Create availability (owner)    |
-| GET    | `/pg/:pgId`  | Get availability for a PG      |
-| PUT    | `/:id`       | Update availability (owner)    |
-| DELETE | `/:id`       | Delete availability (owner)    |
+| Method | Path        | Description                 |
+| ------ | ----------- | --------------------------- |
+| POST   | `/`         | Create availability (owner) |
+| GET    | `/pg/:pgId` | Get availability for a PG   |
+| PUT    | `/:id`      | Update availability (owner) |
+| DELETE | `/:id`      | Delete availability (owner) |
 
 ## Inquiries — `/api/inquiries`
 
-| Method | Path            | Description                 |
-| ------ | --------------- | --------------------------- |
-| POST   | `/`             | Student creates inquiry     |
-| GET    | `/student`      | Student's own inquiries     |
-| GET    | `/owner`        | Inquiries for owner's PGs   |
-| PUT    | `/:id/respond`  | Owner responds              |
+| Method | Path           | Description               |
+| ------ | -------------- | ------------------------- |
+| POST   | `/`            | Student creates inquiry   |
+| GET    | `/student`     | Student's own inquiries   |
+| GET    | `/owner`       | Inquiries for owner's PGs |
+| PUT    | `/:id/respond` | Owner responds            |
 
 ## Bookings — `/api/bookings`
 
-| Method | Path            | Description                            |
-| ------ | --------------- | -------------------------------------- |
-| POST   | `/`             | Student creates booking                |
-| GET    | `/student`      | Student's own bookings                 |
-| GET    | `/owner`        | Bookings for owner's PGs               |
-| GET    | `/:id`          | Get booking by ID (owner or student)   |
-| PUT    | `/:id/accept`   | Owner accepts                          |
-| PUT    | `/:id/reject`   | Owner rejects                          |
-| PUT    | `/:id/cancel`   | Student cancels (pending only)         |
+| Method | Path          | Description                          |
+| ------ | ------------- | ------------------------------------ |
+| POST   | `/`           | Student creates booking              |
+| GET    | `/student`    | Student's own bookings               |
+| GET    | `/owner`      | Bookings for owner's PGs             |
+| GET    | `/:id`        | Get booking by ID (owner or student) |
+| PUT    | `/:id/accept` | Owner accepts                        |
+| PUT    | `/:id/reject` | Owner rejects                        |
+| PUT    | `/:id/cancel` | Student cancels (pending only)       |
 
 ## Reviews — `/api/reviews`
 
-| Method | Path         | Description                                |
-| ------ | ------------ | ------------------------------------------ |
-| POST   | `/`          | Student creates review (needs accepted booking) |
-| GET    | `/my`        | Student's own reviews                      |
-| GET    | `/pg/:pgId`  | Reviews for a PG                           |
-| PUT    | `/:id`       | Update own review                          |
-| DELETE | `/:id`       | Delete own review                          |
+| Method | Path        | Description                                      |
+| ------ | ----------- | ------------------------------------------------ |
+| POST   | `/`         | Student creates review (needs accepted booking)  |
+| GET    | `/my`       | Student's own reviews                            |
+| GET    | `/pg/:pgId` | Reviews for a PG                                 |
+| PUT    | `/:id`      | Update own review                                |
+| DELETE | `/:id`      | Delete own review                                |
 
 ## Favorites — `/api/favorites`
 
-| Method | Path     | Description               |
-| ------ | -------- | ------------------------- |
-| POST   | `/:pgId` | Add PG to favorites       |
-| DELETE | `/:pgId` | Remove PG from favorites  |
-| GET    | `/`      | Get own favorites         |
+| Method | Path     | Description                |
+| ------ | -------- | -------------------------- |
+| POST   | `/:pgId` | Add PG to favorites        |
+| DELETE | `/:pgId` | Remove PG from favorites   |
+| GET    | `/`      | Get own favorites          |
 | GET    | `/:pgId` | Check if a PG is favorited |
+
+## Uploads — `/api/uploads`
+
+| Method | Path        | Description                        |
+| ------ | ----------- | ---------------------------------- |
+| POST   | `/pg-image` | Upload a PG image (owner, form-data field `image`) |
 
 ---
 
 # Frontend Routes
 
-| Path                  | Access  | Page                 |
-| --------------------- | ------- | -------------------- |
-| `/`                   | Public  | Home                 |
-| `/login`              | Public  | Login                |
-| `/register`           | Public  | Register             |
-| `/student/dashboard`  | Student | Dashboard            |
-| `/student/search`     | Student | PG Search            |
-| `/student/pg/:id`     | Student | PG Details           |
-| `/student/inquiries`  | Student | My Inquiries         |
-| `/student/bookings`   | Student | My Bookings          |
-| `/student/favorites`  | Student | Favorites            |
-| `/student/reviews`    | Student | My Reviews           |
-| `/owner/dashboard`    | Owner   | Dashboard            |
-| `/owner/profile`      | Owner   | Owner Profile        |
-| `/owner/pgs`          | Owner   | My PGs               |
-| `/owner/pgs/add`      | Owner   | Add PG               |
-| `/owner/pgs/edit/:id` | Owner   | Edit PG              |
+| Path                  | Access  | Page                    |
+| --------------------- | ------- | ----------------------- |
+| `/`                   | Public  | Home                    |
+| `/login`              | Public  | Login                   |
+| `/register`           | Public  | Register                |
+| `/student/dashboard`  | Student | Dashboard               |
+| `/student/search`     | Student | PG Search               |
+| `/student/pg/:id`     | Student | PG Details              |
+| `/student/inquiries`  | Student | My Inquiries            |
+| `/student/bookings`   | Student | My Bookings             |
+| `/student/favorites`  | Student | Favorites               |
+| `/student/reviews`    | Student | My Reviews              |
+| `/student/profile`    | Student | Student Profile         |
+| `/owner/dashboard`    | Owner   | Dashboard               |
+| `/owner/profile`      | Owner   | Owner Profile           |
+| `/owner/pgs`          | Owner   | My PGs                  |
+| `/owner/pgs/add`      | Owner   | Add PG                  |
+| `/owner/pgs/edit/:id` | Owner   | Edit PG                 |
+| `/owner/pgs/:id`      | Owner   | PG Details (owner view) |
 | `/owner/availability` | Owner   | Availability (`?pgId=`) |
-| `/owner/bookings`     | Owner   | Booking Requests     |
-| `/owner/inquiries`    | Owner   | Inquiries            |
-| `/owner/reviews`      | Owner   | Reviews              |
+| `/owner/bookings`     | Owner   | Booking Requests        |
+| `/owner/inquiries`    | Owner   | Inquiries               |
+| `/owner/reviews`      | Owner   | Reviews                 |
 
 Route guards live in `frontend/src/components/ProtectedRoute.jsx`.
 
@@ -493,6 +551,7 @@ Route guards live in `frontend/src/components/ProtectedRoute.jsx`.
 - Frontend stores `token` and `user` in `localStorage`.
 - `api.js` attaches `Authorization: Bearer <token>` on every request.
 - A `401` from the backend clears localStorage and redirects to `/login`.
+- On page load, `ProtectedRoute` calls `GET /api/auth/me` to verify the token before rendering protected content.
 
 ### Admin Account
 
@@ -523,6 +582,95 @@ Suggested dataset:
 
 Use real-looking PG names (e.g. "Sunrise Boys PG") instead of `PG1`, `PG2`.
 
+A seed script is available:
+
+```bash
+cd backend
+node src/scripts/seedPGs.js
+```
+
+---
+
+# Deployment
+
+The app is deployed with:
+
+- **Frontend** → Netlify
+- **Backend** → Render
+
+## Backend on Render
+
+1. Create a **Web Service** on Render, connect to the GitHub repo.
+2. Settings:
+   - **Root Directory**: `backend`
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+   - **Instance Type**: Free
+3. Add environment variables (from `backend/.env`):
+   - `MONGO_URI`
+   - `JWT_SECRET`
+   - `UPSTASH_REDIS_REST_URL`
+   - `UPSTASH_REDIS_REST_TOKEN`
+   - `CLOUDINARY_CLOUD_NAME`
+   - `CLOUDINARY_API_KEY`
+   - `CLOUDINARY_API_SECRET`
+   - `FRONTEND_URL` → the Netlify URL (see below)
+4. Deploy. Backend URL will look like:
+   ```
+   https://pgconnect-backend.onrender.com
+   ```
+
+**Note:** Render's free tier spins down after 15 minutes of inactivity. The first request after sleep takes 30–60 seconds. This is normal.
+
+## Frontend on Netlify
+
+1. **Update the API base URL first.** In `frontend/src/services/api.js`, change:
+   ```js
+   baseURL: "https://pgconnect-backend.onrender.com/api",
+   ```
+   (replace with your Render URL)
+2. Commit and push.
+3. Create a **New Site** on Netlify, connect to the GitHub repo.
+4. Settings:
+   - **Base directory**: `frontend`
+   - **Build command**: `npm run build`
+   - **Publish directory**: `dist`
+5. Add a `netlify.toml` at the repo root for reproducible settings and React Router redirects:
+
+   ```toml
+   [build]
+     base = "frontend"
+     command = "npm run build"
+     publish = "dist"
+
+   [[redirects]]
+     from = "/*"
+     to = "/index.html"
+     status = 200
+   ```
+
+6. Deploy. Frontend URL will look like:
+   ```
+   https://pgconnect-web.netlify.app
+   ```
+
+## CORS — Link Frontend and Backend
+
+After both are deployed, set `FRONTEND_URL` on Render to the Netlify URL:
+
+```
+https://pgconnect-web.netlify.app
+```
+
+Save. Render redeploys automatically. Without this, the backend blocks requests from Netlify with a CORS error.
+
+## Live URLs
+
+| Service  | URL |
+| -------- | --- |
+| Frontend | https://pgconnect-web.netlify.app |
+| Backend  | https://pgconnect-backend.onrender.com |
+
 ---
 
 # For Team Members
@@ -541,6 +689,12 @@ Create your own `.env` in `backend/`:
 MONGO_URI=mongodb://127.0.0.1:27017/pgconnect
 PORT=5000
 JWT_SECRET=mind your own business.
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+FRONTEND_URL=http://localhost:5173
 ```
 
 Then:
