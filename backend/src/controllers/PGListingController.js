@@ -1,7 +1,26 @@
 const PGListing = require("../models/PGListing");
 const PGOwner = require("../models/PGOwner");
+const redis = require("../config/redis");
 
 const isInvalidObjectId = (error) => error.name === "CastError";
+
+const clearDiscoveryCache = async () => {
+    if (!redis) return;
+
+    try {
+        await redis.del("pg:all");
+        try {
+            const searchKeys = await redis.keys("pg:search:*");
+            if (Array.isArray(searchKeys) && searchKeys.length > 0) {
+                await redis.del(...searchKeys);
+            }
+        } catch {
+            // Ignore search-keys lookup error if pattern scan is not supported
+        }
+    } catch (err) {
+        console.error("Redis cache clear error:", err.message);
+    }
+};
 
 const MAX_IMAGES = 5;
 
@@ -58,6 +77,8 @@ const addPGListing = async (req, res) => {
             contactNo,
             images: cleanImages,
         });
+
+        await clearDiscoveryCache();
 
         res.status(201).json({
             message: "PG listing added successfully",
@@ -199,6 +220,8 @@ const updatePGListing = async (req, res) => {
 
         await pgListing.save();
 
+        await clearDiscoveryCache();
+
         res.status(200).json({
             message: "PG listing updated successfully",
             pgListing,
@@ -250,6 +273,8 @@ const deletePGListing = async (req, res) => {
         }
 
         await PGListing.findByIdAndDelete(req.params.id);
+
+        await clearDiscoveryCache();
 
         res.status(200).json({
             message: "PG listing deleted successfully",
